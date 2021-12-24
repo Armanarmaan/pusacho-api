@@ -55,15 +55,17 @@ exports.loginUser = async (req, res) => {
       return;
     }
 
-    // Create token
-    const token = jwt.sign({ _id: user[0].name }, process.env.TOKEN_SECRET);
+    // Create token Based on User Role
+    const token_secret = user[0].role === 0 ? process.env.TOKEN_SECRET_MANAJEMEN : user[0].role === 1 ? process.env.TOKEN_SECRET_LAPANGAN : process.env.TOKEN_SECRET_HYBRID;
+    const token = jwt.sign({ _id: user[0].name }, token_secret);
     
     // Return token, username and role
     res.json({
       status: 200,
       auth_token: token,
       username:  user[0].username,
-      role: user[0].role
+      role: user[0].role,
+      id: user[0].id
     });
   } catch(err){
     res.json({
@@ -71,4 +73,11 @@ exports.loginUser = async (req, res) => {
       message: err
     });
   }
+}
+
+exports.verifyUser = async (req, res) => {
+  res.json({
+    status: 200,
+    data: 'token valid'
+  })
 }
