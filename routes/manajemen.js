@@ -6,6 +6,7 @@ const manajemen = require("../controllers/manajemen");
 router.get("/", (req, res) => res.json("manajemen API"));
 
 router.get("/get", manajemen.getSomething);
-router.get("/dashboard/activity", verifyToken, manajemen.getActivities)
+router.get("/dashboard/statistics", verifyToken, manajemen.getStatistics);
+router.get("/dashboard/activity", verifyToken, manajemen.getActivities);
 
 module.exports = router;
