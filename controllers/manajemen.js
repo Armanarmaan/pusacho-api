@@ -96,8 +96,7 @@ exports.getAllProducts = async (req, res) => {
 
     let where_sql = "";
     if (filter) {
-      where_sql += "WHERE c.id IN (?)";
-      filqueryValues.push(filter);
+      where_sql += `WHERE c.id IN (${filter})`;
     };
     if (query) {
       where_sql += filter != "" ? " AND LOWER(v.name) LIKE LOWER(?)" : "WHERE LOWER(v.name) LIKE LOWER(?)";
@@ -120,8 +119,6 @@ exports.getAllProducts = async (req, res) => {
       ${where_sort}
     `;
 
-    console.log(sql);
-
     const product = await execute(pusacho, sql, filqueryValues);
     
     if (product.length > 0) {
@@ -140,7 +137,11 @@ exports.getAllProducts = async (req, res) => {
         data: product
       })
     } else {
-      res.status(204)
+      res.status(200).json({
+        code: 204,
+        message: "No Product",
+        data: []
+      })
     }
   } catch(error) {
     console.log("[Get All Product] Error: ", error.toString());
