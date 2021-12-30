@@ -30,7 +30,7 @@ exports.getSomething = (req, res) => {
  */
 exports.getAllCategories = async (req, res) => {
   try {
-    const sql = "SELECT * FROM categories";
+    const sql = "SELECT id AS value, name AS label FROM category";
 
     const categories = await execute(pusacho, sql);
     if (categories.length > 0) {
@@ -88,8 +88,67 @@ exports.addNewCategory = async (req, res) => {
  * Get ALl Products
  * {GET}/manajemen/products
  */
-exports.getAllProducts = (req, res) => {
-  // const { }
+exports.getAllProducts = async (req, res) => {
+  const { sort, filter, query } = req.query;
+
+  try {
+    const filqueryValues = []
+
+    let where_sql = "";
+    if (filter) {
+      where_sql += "WHERE c.id IN (?)";
+      filqueryValues.push(filter);
+    };
+    if (query) {
+      where_sql += filter != "" ? " AND LOWER(v.name) LIKE LOWER(?)" : "WHERE LOWER(v.name) LIKE LOWER(?)";
+      filqueryValues.push(`%${query}%`);
+    }; 
+
+    const where_sort = 
+      sort == "modalasc" ? "ORDER BY CONVERT(SUBSTRING_INDEX(modals, ',', -1), SIGNED) ASC" :
+      sort == "modaldesc" ? "ORDER BY CONVERT(SUBSTRING_INDEX(modals, ',', -1), SIGNED) DESC" :
+      sort == "amountasc" ? "ORDER BY stock ASC" :
+      sort == "amountdesc" ? "ORDER BY stock DESC" :
+      sort == "sellasc" ? "ORDER BY price ASC" :
+      sort == "selldesc" ? "ORDER BY price DESC" : "";
+
+    const sql = `
+      SELECT c.name AS category_name, v.id, v.name,  v.size, v.price, v.stock, v.suppliers, v.modals, v.modal_nett_per, v.modal_nett, v.logistic_costs, v.margins
+      FROM variants v 
+      INNER JOIN category c ON v.category_id = c.id 
+      ${where_sql}
+      ${where_sort}
+    `;
+
+    console.log(sql);
+
+    const product = await execute(pusacho, sql, filqueryValues);
+    
+    if (product.length > 0) {
+      product.map(item => {
+        item.suppliers = item.suppliers.split("|");
+        item.modals = item.modals.split("|");
+        item.modal_nett_per = item.modal_nett_per.split("|");
+        item.modal_nett = item.modal_nett.split("|");
+        item.logistic_costs = item.logistic_costs.split("|");
+        item.margins = item.margins.split("|");
+      });
+
+      res.status(200).json({
+        code: 200,
+        message: "Ok",
+        data: product
+      })
+    } else {
+      res.status(204)
+    }
+  } catch(error) {
+    console.log("[Get All Product] Error: ", error.toString());
+    res.status(500).json({
+      code: 500,
+      message: "Internal Server Error"
+    });
+  };
 };
 
 
@@ -101,14 +160,39 @@ exports.getSingleProduct = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const sql = `SELECT * FROM variants WHERE id = ?`;
+    const sql = `
+    SELECT 
+      c.name AS category_name,
+      v.id,
+      v.name, 
+      v.size,
+      v.price,
+      v.stock,
+      v.suppliers,
+      v.modals,
+      v.modal_nett_per,
+      v.modal_nett,
+      v.logistic_costs,
+      v.margins
+    FROM variants v 
+    INNER JOIN category c ON v.category_id = c.id 
+    WHERE v.id = ?
+    `;
     
-    const product = await execute(pusacho, sql, [id]);
+    let product = await execute(pusacho, sql, [id]);
+
     if (product.length > 0) {
+      product[0].suppliers = product[0].suppliers.split("|");
+      product[0].modals = product[0].modals.split("|");
+      product[0].modal_nett_per = product[0].modal_nett_per.split("|");
+      product[0].modal_nett = product[0].modal_nett.split("|");
+      product[0].logistic_costs = product[0].logistic_costs.split("|");
+      product[0].margins = product[0].margins.split("|");
+
       res.status(200).json({
         code: 200,
         message: "Ok",
-        data: product
+        data: product[0]
       }) 
     } else {
       res.status(204).json({
@@ -132,6 +216,7 @@ exports.getSingleProduct = async (req, res) => {
  */
  exports.updateProductAmount = async (req, res) => {
   const { id, amount } = req.body;
+  console.log(req.body);
 
   try {
     const sql = `
@@ -142,6 +227,7 @@ exports.getSingleProduct = async (req, res) => {
     `;
 
     const updateProduct = await execute(pusacho, sql, [amount, id]);
+    console.log(updateProduct);
     if (updateProduct.affectedRows > 0) {
       res.status(200).json({
         code: 200,
