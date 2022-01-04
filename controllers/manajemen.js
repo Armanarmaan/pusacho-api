@@ -33,8 +33,14 @@ exports.getActivities = async (req, res) => {
   const { activeTab, keyword, categories, datestart, dateend } = req.query;
   try{
     let wheres = [];
+    
+    if(datestart !== 'null' && datestart !== '' && dateend !== 'null' && dateend !== ''){
+      const whereDate = `l.created_at BETWEEN '${datestart}' AND '${dateend}'`;
+      wheres.push(whereDate);
+    }
+
     if(keyword !== 'null' && keyword !== ''){
-      const whereKeyword = `v.name LIKE '%${keyword}%' OR l.product_id LIKE '%${keyword}%'`;
+      const whereKeyword = `v.name LIKE '%${keyword}%'`;
       wheres.push(whereKeyword);
     }
     
@@ -42,32 +48,19 @@ exports.getActivities = async (req, res) => {
       const whereCategory = `v.category_id IN (${categories})`;
       wheres.push(whereCategory);
     }
-    
-    if(datestart !== 'null' && datestart !== '' && dateend !== 'null' && dateend !== ''){
-      const whereDate = `l.created_at BETWEEN '${datestart}' AND '${dateend}'`;
-      wheres.push(whereDate);
-    }
 
     const allWheres = wheres.join(' AND ');
     
-    const queryGetData = activeTab === '0' ? 
+    const queryGetData = 
       `SELECT l.id, l.product_id, v.name, v.price, a.wording, l.activity_id, 
           l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, l.created_at
         FROM activity_log l 
         INNER JOIN activities a ON l.activity_id = a.id 
         INNER JOIN variants v ON l.product_id = v.id
         INNER JOIN users u ON l.actor_id = u.id
-        WHERE l.activity_id IN(1,2) AND ${allWheres}
-        ORDER BY l.created_at DESC;`
-      :
-      `SELECT l.id, l.product_id, v.name, v.price, a.wording, l.activity_id, 
-          l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, l.created_at
-        FROM activity_log l 
-        INNER JOIN activities a ON l.activity_id = a.id 
-        INNER JOIN variants v ON l.product_id = v.id
-        INNER JOIN users u ON l.actor_id = u.id
-        WHERE NOT l.activity_id = 1 AND NOT l.activity_id = 2 AND ${allWheres}
+        WHERE ${allWheres}
         ORDER BY l.created_at DESC;`;
+    
     const data = await execute(pusacho, queryGetData);
 
     const queryGetAllCategory = `SELECT * FROM category`;
@@ -88,11 +81,26 @@ exports.getActivities = async (req, res) => {
     // process activities
     let dataProcessed = {};
     if(data.length > 0){
+
+      let cleanedData = [];
+      data.forEach(item => {
+        if(activeTab === '0'){
+          if(item.activity_id === 1 || item.activity_id === 2 ){
+            cleanedData.push(item);
+          }
+        }
+        else{
+          if(item.activity_id !== 1 && item.activity_id !== 2){
+            cleanedData.push(item);
+          }
+        }
+      });
+
       if(activeTab !== '0'){
-        data.forEach(item => {
+        cleanedData.forEach(item => {
           item.date = moment(item.created_at).format("YYYY-MM-DD");
         });
-        let groupedResultObj = _.mapValues(_.groupBy(data, 'date'),
+        let groupedResultObj = _.mapValues(_.groupBy(cleanedData, 'date'),
         clist => clist.map(date => _.omit(date, 'date')));
         let groupedResArr = [];
         Object.entries(groupedResultObj).forEach(itemzz => {
@@ -140,7 +148,7 @@ exports.getActivities = async (req, res) => {
         }
       }
       else{
-        data.forEach((item) => {
+        cleanedData.forEach((item) => {
           if(item.activity_id === 1){
             item.difference = Number(item.final_value) - Number(item.initial_value);
           }
@@ -149,7 +157,7 @@ exports.getActivities = async (req, res) => {
           }
         })
         dataProcessed = {
-          datas: data,
+          datas: cleanedData,
           categories: categoryList
         };
       }
