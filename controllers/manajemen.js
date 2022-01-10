@@ -60,10 +60,10 @@ exports.getAllCategories = async (req, res) => {
  */
 exports.addNewCategory = async (req, res) => {
   const { category } = req.body;
+
   try {
-    
-    const sql = "INSERT INTO categories VALUES(?)";
-    const insertCategory = await execute(pusacho, sql, [category]);
+    const sql = "INSERT INTO category (name) VALUES (?)";
+    const insertCategory = await execute(pusacho, sql, category);
     if (insertCategory.affectedRows > 0) {
       res.status(200).json({
         code: 200,
@@ -217,7 +217,6 @@ exports.getSingleProduct = async (req, res) => {
  */
  exports.updateProductAmount = async (req, res) => {
   const { id, amount } = req.body;
-  console.log(req.body);
 
   try {
     const sql = `
