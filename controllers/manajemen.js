@@ -372,6 +372,7 @@ exports.getSingleProduct = async (req, res) => {
   try {
     const sql = `
     SELECT 
+      c.id AS category_id,
       c.name AS category_name,
       v.id,
       v.name, 
@@ -418,6 +419,74 @@ exports.getSingleProduct = async (req, res) => {
       message: "Internal Server Error"
     });
   }
+};
+
+/**
+ * Update Product amount 
+ * {POST}/manajemen/product
+ */
+ exports.addProduct = async (req, res) => {
+   const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = req.body;
+  try {
+   const sql = `
+    INSERT INTO variants (id, category_id, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const updateProduct = await execute(pusacho, sql, [id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins]);
+    if (updateProduct.affectedRows > 0) {
+      res.status(200).json({
+        code: 200,
+        message: "Ok"
+      })
+    } else {
+      res.status(400).json({
+        code: 400,
+        message: "Failed to update"
+      })
+    }
+
+  } catch(error) {
+    console.log("[Insert Product] Error :", error.toString());
+    res.status(500).json({
+      code: 200,
+      message: "Internal Server Error"
+    });
+  };
+};
+
+/**
+ * Update Product data 
+ * {POST}/manajemen/product
+ */
+ exports.editProduct = async (req, res) => {
+  const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = req.body;
+ try {
+  const sql = `
+   UPDATE variants 
+   SET category_id = ?, name = ?, size = ?, price = ?, stock = ?, suppliers = ?, modals = ?, modal_nett_per = ?, modal_nett = ?, logistic_costs = ?, margins = ?
+   WHERE id = ?
+   `
+
+   const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
+   if (updateProduct.affectedRows > 0) {
+     res.status(200).json({
+       code: 200,
+       message: "Ok"
+     })
+   } else {
+     res.status(400).json({
+       code: 400,
+       message: "Failed to update"
+     })
+   }
+
+ } catch(error) {
+   console.log("[Insert Product] Error :", error.toString());
+   res.status(500).json({
+     code: 200,
+     message: "Internal Server Error"
+   });
+ };
 };
 
 /**

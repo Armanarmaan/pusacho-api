@@ -17,7 +17,8 @@ router.post("/categories/add", manajemen.addNewCategory);
 router.get("/products", manajemen.getAllProducts);
 router.get("/products/:id", manajemen.getSingleProduct);
 
+router.post("/product", manajemen.addProduct);
+router.post("/product/update", manajemen.editProduct);
 router.post("/products/update/amount", manajemen.updateProductAmount);
-// router.post("/products/update/")
 
 module.exports = router;
