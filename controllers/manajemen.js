@@ -322,7 +322,20 @@ exports.getAllProducts = async (req, res) => {
       sort == "selldesc" ? "ORDER BY price DESC" : "";
 
     const sql = `
-      SELECT c.name AS category_name, v.id, v.name,  v.size, v.price, v.stock, v.suppliers, v.modals, v.modal_nett_per, v.modal_nett, v.logistic_costs, v.margins
+      SELECT 
+        c.name AS category_name, 
+        v.id, 
+        v.name,  
+        v.size, 
+        v.price, 
+        v.stock, 
+        v.suppliers, 
+        v.modals, 
+        v.modal_nett_per, 
+        v.modal_nett, 
+        v.logistic_costs, 
+        v.margins,
+        v.images
       FROM variants v 
       INNER JOIN category c ON v.category_id = c.id 
       ${where_sql}
@@ -385,7 +398,8 @@ exports.getSingleProduct = async (req, res) => {
       v.modal_nett_per,
       v.modal_nett,
       v.logistic_costs,
-      v.margins
+      v.margins,
+      v.images
     FROM variants v 
     INNER JOIN category c ON v.category_id = c.id 
     WHERE v.id = ?
@@ -480,47 +494,47 @@ const moveImage = (files, name, id) => {
  * Update Product data 
  * {POST}/manajemen/product
  */
- exports.editProduct = async (req, res) => {
+exports.editProduct = async (req, res) => {
   const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = JSON.parse(req.body.data);
- try {
-  const sql = `
+  try {
+    const sql = `
    UPDATE variants 
    SET category_id = ?, name = ?, size = ?, price = ?, stock = ?, suppliers = ?, modals = ?, modal_nett_per = ?, modal_nett = ?, logistic_costs = ?, margins = ?
    WHERE id = ?
    `
 
-   const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
-   if (updateProduct.affectedRows > 0) {
-    
-    if (req.files.image.length > 0) {
-      const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
-      const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
-      if (mvImg.affectedRows == 1) {
+    const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
+    if (updateProduct.affectedRows > 0) {
+
+      if (req.files.image.length > 0) {
+        const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
+        const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
+        if (mvImg.affectedRows == 1) {
+          res.status(200).json({
+            code: 200,
+            message: "Ok"
+          })
+        }
+      } else {
         res.status(200).json({
           code: 200,
           message: "Ok"
         })
       }
     } else {
-      res.status(200).json({
-        code: 200,
-        message: "Ok"
+      res.status(400).json({
+        code: 400,
+        message: "Failed to update"
       })
     }
-   } else {
-     res.status(400).json({
-       code: 400,
-       message: "Failed to update"
-     })
-   }
 
- } catch(error) {
-   console.log("[Insert Product] Error :", error.toString());
-   res.status(500).json({
-     code: 200,
-     message: "Internal Server Error"
-   });
- };
+  } catch (error) {
+    console.log("[Insert Product] Error :", error.toString());
+    res.status(500).json({
+      code: 200,
+      message: "Internal Server Error"
+    });
+  };
 };
 
 /**

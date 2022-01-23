@@ -34,6 +34,10 @@ app.use(cors());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Allow Image to be accessed
+app.use(express.static('images')); 
+app.use('/images', express.static('images'));
+
 
 // Routes Defining
 const manajemen = require("./routes/manajemen");
