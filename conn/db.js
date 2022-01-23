@@ -3,11 +3,10 @@ const mysql = require("mysql");
 exports.pusacho = mysql.createPool({
   connectionLimit: 100,
   host: "localhost",
-  user: "pusacho",
-  password: "password",
+  user: "lakasdp",
+  password: "Lakasdp39",
   database: "pusacho"
 });
-
 /**
  * execute database query with Promise
  * sql: SQL query

@@ -1,7 +1,20 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+
 const verifyToken = require('../middlewares/verifyToken');
 const manajemen = require("../controllers/manajemen");
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "data/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage });
 
 router.get("/", (req, res) => res.json("manajemen API"));
 
@@ -17,8 +30,8 @@ router.post("/categories/add", manajemen.addNewCategory);
 router.get("/products", manajemen.getAllProducts);
 router.get("/products/:id", manajemen.getSingleProduct);
 
-router.post("/product", manajemen.addProduct);
-router.post("/product/update", manajemen.editProduct);
+router.post("/product", [upload.fields([{ name: "image", maxCount: 1 }])], manajemen.addProduct);
+router.post("/product/update", [upload.fields([{ name: "image", maxCount: 1 }])], manajemen.editProduct);
 router.post("/products/update/amount", manajemen.updateProductAmount);
 
 module.exports = router;

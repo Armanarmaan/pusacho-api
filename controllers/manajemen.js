@@ -1,6 +1,7 @@
 const { execute, pusacho } = require("../conn/db");
 const moment = require("moment");
 const _ = require("lodash");
+const mv = require("mv");
 
 exports.getSomething = (req, res) => {
   try {
@@ -421,12 +422,27 @@ exports.getSingleProduct = async (req, res) => {
   }
 };
 
+// Move Image function for add & edit product
+const moveImage = (files, name, id) => {
+  return new Promise((resolve, reject) => {
+    mv(files.path, `${__dirname}/../images/${name}`, { mkdirp: true }, async (error) => {
+      if (error) reject(error)
+      else {
+        const imgPath = `/images/${name}`
+        const updateSql = `UPDATE variants SET images = ? WHERE id = ?`;
+        const updateProduct = await execute(pusacho, updateSql, [imgPath, id]);
+        resolve(updateProduct);
+      }
+    })
+  })
+};
+
 /**
  * Update Product amount 
  * {POST}/manajemen/product
  */
  exports.addProduct = async (req, res) => {
-   const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = req.body;
+  const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = JSON.parse(req.body.data);
   try {
    const sql = `
     INSERT INTO variants (id, category_id, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins)
@@ -434,10 +450,16 @@ exports.getSingleProduct = async (req, res) => {
 
     const updateProduct = await execute(pusacho, sql, [id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins]);
     if (updateProduct.affectedRows > 0) {
-      res.status(200).json({
-        code: 200,
-        message: "Ok"
-      })
+
+      const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
+      const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
+      if (mvImg.affectedRows == 1) {
+        res.status(200).json({
+          code: 200,
+          message: "Ok"
+        })
+      }
+
     } else {
       res.status(400).json({
         code: 400,
@@ -459,7 +481,7 @@ exports.getSingleProduct = async (req, res) => {
  * {POST}/manajemen/product
  */
  exports.editProduct = async (req, res) => {
-  const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = req.body;
+  const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = JSON.parse(req.body.data);
  try {
   const sql = `
    UPDATE variants 
@@ -469,10 +491,22 @@ exports.getSingleProduct = async (req, res) => {
 
    const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
    if (updateProduct.affectedRows > 0) {
-     res.status(200).json({
-       code: 200,
-       message: "Ok"
-     })
+    
+    if (req.files.image.length > 0) {
+      const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
+      const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
+      if (mvImg.affectedRows == 1) {
+        res.status(200).json({
+          code: 200,
+          message: "Ok"
+        })
+      }
+    } else {
+      res.status(200).json({
+        code: 200,
+        message: "Ok"
+      })
+    }
    } else {
      res.status(400).json({
        code: 400,
