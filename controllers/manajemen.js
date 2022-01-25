@@ -31,7 +31,11 @@ const currencyFormat = (nominal) => {
 }
 
 exports.getActivities = async (req, res) => {
-  const { activeTab, keyword, categories, datestart, dateend } = req.query;
+  const { activeTab, keyword, categories, datestart, dateend, offset, limit } = req.query;
+  // Define Conditions, Sort, Filter & Search Variables
+  const offsetInt = _.isUndefined(offset) ? 0 : parseInt(offset);
+  const limitInt = _.isUndefined(limit) ? 10 : parseInt(limit);
+  const limitoffset = `LIMIT ${offsetInt}, ${limitInt}`;
   try{
     let wheres = [];
     if(keyword !== 'null' && keyword !== ''){
@@ -59,7 +63,8 @@ exports.getActivities = async (req, res) => {
         INNER JOIN variants v ON l.product_id = v.id
         INNER JOIN users u ON l.actor_id = u.id
         WHERE l.activity_id IN(1,2) AND ${allWheres}
-        ORDER BY l.created_at DESC;`
+        ORDER BY l.created_at DESC
+        ${limitoffset};`
       :
       `SELECT l.id, l.product_id, v.name, v.price, a.wording, l.activity_id, 
           l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, l.created_at
@@ -68,8 +73,28 @@ exports.getActivities = async (req, res) => {
         INNER JOIN variants v ON l.product_id = v.id
         INNER JOIN users u ON l.actor_id = u.id
         WHERE NOT l.activity_id = 1 AND NOT l.activity_id = 2 AND ${allWheres}
-        ORDER BY l.created_at DESC;`;
+        ORDER BY l.created_at DESC
+        ${limitoffset};`;
+
+    const queryGetTotal = activeTab === '0' ? 
+      `SELECT COUNT(l.id) as total
+      FROM activity_log l
+      INNER JOIN activities a ON l.activity_id = a.id 
+      INNER JOIN variants v ON l.product_id = v.id
+      INNER JOIN users u ON l.actor_id = u.id
+      WHERE l.activity_id IN(1,2) AND ${allWheres}
+      ORDER BY l.created_at DESC;`
+      :
+      `SELECT COUNT(l.id) as total
+      FROM activity_log l
+      INNER JOIN activities a ON l.activity_id = a.id 
+      INNER JOIN variants v ON l.product_id = v.id
+      INNER JOIN users u ON l.actor_id = u.id
+      WHERE NOT l.activity_id = 1 AND NOT l.activity_id = 2 AND ${allWheres}
+      ORDER BY l.created_at DESC;`;
+    
     const data = await execute(pusacho, queryGetData);
+    const [dataTotal] = await execute(pusacho, queryGetTotal);
 
     const queryGetAllCategory = `SELECT * FROM category`;
     const dataCategory = await execute(pusacho, queryGetAllCategory);
@@ -154,9 +179,13 @@ exports.getActivities = async (req, res) => {
           categories: categoryList
         };
       }
+      
       res.json({
         status: 200,
-        data: dataProcessed
+        data: dataProcessed,
+        meta: {
+          total: dataTotal.total
+        }
       });
     }
     else{
@@ -166,7 +195,10 @@ exports.getActivities = async (req, res) => {
       };
       res.json({
         status: 200,
-        data: dataProcessed
+        data: dataProcessed,
+        meta: {
+          total: 0
+        }
       });
     }
     
