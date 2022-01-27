@@ -21,6 +21,8 @@ router.get("/", (req, res) => res.json("manajemen API"));
 router.get("/get", manajemen.getSomething);
 router.get("/dashboard/statistics", verifyToken, manajemen.getStatistics);
 router.get("/dashboard/activity", verifyToken, manajemen.getActivities);
+router.get("/dashboard/download/report/log", verifyToken, manajemen.getLogsAsXslx);
+router.get("/dashboard/download/report/activity", verifyToken, manajemen.getActivitiesAsXslx);
 
 // Produk Manajemen
 router.get("/categories", manajemen.getAllCategories);

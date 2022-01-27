@@ -2,6 +2,7 @@ const { execute, pusacho } = require("../conn/db");
 const moment = require("moment");
 const _ = require("lodash");
 const mv = require("mv");
+const json2xls = require("json2xls");
 
 exports.getSomething = (req, res) => {
   try {
@@ -57,7 +58,7 @@ exports.getActivities = async (req, res) => {
     
     const queryGetData = activeTab === '0' ? 
       `SELECT l.id, l.product_id, v.name, v.price, a.wording, l.activity_id, 
-          l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, l.created_at
+          l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, v.images AS images, l.created_at
         FROM activity_log l 
         INNER JOIN activities a ON l.activity_id = a.id 
         INNER JOIN variants v ON l.product_id = v.id
@@ -67,7 +68,7 @@ exports.getActivities = async (req, res) => {
         ${limitoffset};`
       :
       `SELECT l.id, l.product_id, v.name, v.price, a.wording, l.activity_id, 
-          l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, l.created_at
+          l.initial_value, l.final_value, l.actor_id, u.name AS actor_name, v.images AS images, l.created_at
         FROM activity_log l 
         INNER JOIN activities a ON l.activity_id = a.id 
         INNER JOIN variants v ON l.product_id = v.id
@@ -263,6 +264,205 @@ exports.getStatistics = async (req, res) => {
     });
   }
 }
+
+const getHighestVal = (arr) => {
+  return Math.max(...arr);
+}
+/**
+ * @Group - Manajemen Dashboard
+ * @Method - GET
+ * @address - /download/report/log
+ * @Function - Get Log barang as xlsx
+ */
+ exports.getLogsAsXslx = async (req, res) => {
+  const { start_date, end_date } = req.query;
+  let cleanData = [];
+  try {
+    const getSql = `
+    SELECT v.*, c.name AS category,
+      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", a.activity_id, "created_at", a.created_at))
+      FROM activity_log a
+      WHERE a.product_id = v.id AND a.activity_id IN(1,2) AND a.created_at BETWEEN ? AND ?
+      ORDER BY a.created_at ASC) AS activity
+    FROM variants v
+    INNER JOIN category c ON v.category_id = c.id
+    GROUP BY v.id
+    ORDER BY v.category_id ASC`;
+
+    const sqlData = await execute(pusacho, getSql, [`${start_date} 00:00:00`, `${end_date} 23:59:59`]);
+
+    if (sqlData.length > 0) {
+      sqlData.forEach(item => {
+        item.activity = JSON.parse(item.activity);
+        let itemAcObjs = [];
+        let totalTambah = 0, totalKurang = 0;
+        item.activity.forEach(itemA => {
+          let asObj = JSON.parse(itemA);
+          if(asObj.activity_id === 1){
+            let total = asObj.final_value - asObj.initial_value;
+            totalTambah += total;
+          }
+          else if (asObj.activity_id === 2){
+            let total = asObj.initial_value - asObj.final_value;
+            totalKurang += total;
+          }
+          itemAcObjs.push(asObj);
+        })
+        item.activity = itemAcObjs;
+        item.QtyMasuk = totalTambah;
+        item.QtyKeluar = totalKurang;
+        item.QtyAwal = item.activity.length > 0 ? Number(item.activity[0].initial_value)  : item.stock;
+        item.QtyTotal = item.stock;
+        let cleanDatum = {
+          "Kode Barang": item.id,
+          "Nama": item.name,
+          "Kategori": item.category,
+          "Ukuran": item.size,
+          "Harga Modal (Rp)": Number(getHighestVal(item.modals.split("|"))),
+          "Harga Modal Nett (Rp)": Number(getHighestVal(item.modal_nett.split("|"))),
+          "Biaya Logistik (Rp)": Number(getHighestVal(item.logistic_costs.split("|"))),
+          "Harga Jual (Rp)": Number(item.price),
+          "Margin (%)": Number(getHighestVal(item.margins.split("|"))),
+          "Qty Awal": item.QtyAwal,
+          "Qty Masuk": item.QtyMasuk,
+          "Qty Keluar": item.QtyKeluar,
+          "Qty Total": item.QtyTotal
+        };
+        cleanData.push(cleanDatum);
+      });
+    } else {
+      let cleanDatum = {
+        "Kode Barang": "",
+        "Nama": "",
+        "Kategori": "",
+        "Ukuran": "",
+        "Harga Modal (Rp)": "",
+        "Harga Modal Nett (Rp)": "",
+        "Biaya Logistik (Rp)": "",
+        "Harga Jual (Rp)": "",
+        "Margin (%)": "",
+        "Qty Awal": "",
+        "Qty Masuk": "",
+        "Qty Keluar": "",
+        "Qty Total": ""
+      };
+      cleanData.push(cleanDatum);
+    }
+    const attachmentDate = moment(new Date()).format("DD-MM-YYYY");
+    const fileName = `products-download-${attachmentDate}.xlsx`;
+
+    const xls = json2xls(cleanData);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats');
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    res.end(xls, "binary");
+
+  } catch (error) {
+    console.log("[Get Log Barang as Xlsx] Error: ", error.toString())
+    res.status(500).json({
+      status: 500,
+      message: `Internal Server Error: ${error.toString()}`,
+    });
+  }
+};
+
+/**
+ * @Group - Manajemen Dashboard
+ * @Method - GET
+ * @address - /download/report/log
+ * @Function - Get Log barang as xlsx
+ */
+ exports.getActivitiesAsXslx = async (req, res) => {
+  const { start_date, end_date } = req.query;
+  let cleanData = [];
+  try {
+    const getSql = `
+    SELECT v.id AS id, v.name, v.size, c.name AS category,
+      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", 
+        a.activity_id, "description", t.description, "actor", u.name, "created_at", a.created_at))
+      FROM activity_log a
+      INNER JOIN activities t ON a.activity_id = t.id
+      INNER JOIN users u ON a.actor_id = u.id
+      WHERE a.product_id = v.id AND NOT a.activity_id = 1 AND NOT a.activity_id = 2 AND a.created_at BETWEEN ? AND ?
+      ORDER BY a.created_at ASC) AS activity
+    FROM variants v
+    INNER JOIN category c ON v.category_id = c.id
+    GROUP BY v.id
+    ORDER BY v.category_id ASC`;
+
+    const sqlData = await execute(pusacho, getSql, [`${start_date} 00:00:00`, `${end_date} 23:59:59`]);
+
+    if (sqlData.length > 0) {
+      sqlData.forEach(item => {
+        item.activity = JSON.parse(item.activity);
+        let itemAcObjs = [];
+        item.activity.forEach(itemA => {
+          let asObj = JSON.parse(itemA);
+          itemAcObjs.push(asObj);
+        })
+        item.activity = itemAcObjs;
+        let cleanDatum = {
+          "Kode Barang": item.id,
+          "Nama": item.name,
+          "Kategori": item.category,
+          "Ukuran": item.size,
+          "Jenis Aktivitas": item.activity.length > 0 ? item.activity[0].description : "",
+          "Awal": item.activity.length > 0 ? item.activity[0].initial_value : "",
+          "Hasil": item.activity.length > 0 ? item.activity[0].final_value : "",
+          "Aktor": item.activity.length > 0 ? item.activity[0].actor : "",
+          "Tanggal": item.activity.length > 0 ? moment(item.activity[0].created_at).format("DD/MM/YYYY HH:mm:ss") : "",
+        };
+        cleanData.push(cleanDatum);
+        if(item.activity.length > 0 ){
+          item.activity.forEach((itemA, index) => {
+            if(index !== 0){
+              let activDatum = {
+                "Kode Barang": "",
+                "Nama": "",
+                "Kategori": "",
+                "Ukuran": "",
+                "Jenis Aktivitas": itemA.description,
+                "Awal": itemA.initial_value,
+                "Hasil": itemA.final_value,
+                "Aktor": itemA.actor,
+                "Tanggal": moment(itemA.created_at).format("DD/MM/YYYY HH:mm:ss")
+              };
+              cleanData.push(activDatum);
+            }
+          });
+        }
+      });
+    } else {
+      let cleanDatum = {
+        "Kode Barang": "",
+        "Nama": "",
+        "Kategori": "",
+        "Ukuran": "",
+        "Jenis Aktivitas": "",
+        "Awal": "",
+        "Hasil": "",
+        "Aktor": "",
+        "Tanggal": ""
+      };
+      cleanData.push(cleanDatum);
+    }
+    const attachmentDate = moment(new Date()).format("DD-MM-YYYY");
+    const fileName = `products-download-${attachmentDate}.xlsx`;
+
+    const xls = json2xls(cleanData);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats');
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    res.end(xls, "binary");
+
+  } catch (error) {
+    console.log("[Get Log Barang as Xlsx] Error: ", error.toString())
+    res.status(500).json({
+      status: 500,
+      message: `Internal Server Error: ${error.toString()}`,
+    });
+  }
+};
 
 // Produk Manajemen
 
