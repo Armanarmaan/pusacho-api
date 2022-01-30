@@ -53,7 +53,7 @@ exports.getAktivitas = async (req, res) => {
   const { id } = req.query;
   try {
     const queryGetData =
-      `SELECT l.id, l.product_id, v.name, v.size, a.wording, l.activity_id, 
+      `SELECT l.id, l.product_id, v.name, v.size, v.images, a.wording, l.activity_id, 
             l.initial_value, l.final_value, l.created_at
           FROM activity_log l 
           INNER JOIN activities a ON l.activity_id = a.id 

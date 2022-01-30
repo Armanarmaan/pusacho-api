@@ -531,7 +531,10 @@ exports.addNewCategory = async (req, res) => {
  * {GET}/manajemen/products
  */
 exports.getAllProducts = async (req, res) => {
-  const { sort, filter, query } = req.query;
+  const { sort, filter, query, offset, limit } = req.query;
+  const offsetInt = _.isUndefined(offset) ? 0 : parseInt(offset);
+  const limitInt = _.isUndefined(limit) ? 10 : parseInt(limit);
+  const limitoffset = `LIMIT ${offsetInt}, ${limitInt}`;
 
   try {
     const filqueryValues = []
@@ -572,9 +575,19 @@ exports.getAllProducts = async (req, res) => {
       INNER JOIN category c ON v.category_id = c.id 
       ${where_sql}
       ${where_sort}
+      ${limitoffset}
+    `;
+
+    const sqlTotal = `
+      SELECT COUNT(v.id) as total
+      FROM variants v 
+      INNER JOIN category c ON v.category_id = c.id 
+      ${where_sql}
+      ${where_sort}
     `;
 
     const product = await execute(pusacho, sql, filqueryValues);
+    const [productTotal] = await execute(pusacho, sqlTotal, filqueryValues);
     
     if (product.length > 0) {
       product.map(item => {
@@ -589,13 +602,19 @@ exports.getAllProducts = async (req, res) => {
       res.status(200).json({
         code: 200,
         message: "Ok",
-        data: product
+        data: product,
+        meta: {
+          total: productTotal.total
+        }
       })
     } else {
       res.status(200).json({
         code: 204,
         message: "No Product",
-        data: []
+        data: [],
+        meta: {
+          total: 0
+        }
       })
     }
   } catch(error) {
