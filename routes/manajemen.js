@@ -36,4 +36,6 @@ router.post("/product", [upload.fields([{ name: "image", maxCount: 1 }])], manaj
 router.post("/product/update", [upload.fields([{ name: "image", maxCount: 1 }])], manajemen.editProduct);
 router.post("/products/update/amount", manajemen.updateProductAmount);
 
+router.delete("/product", manajemen.deleteProduct);
+
 module.exports = router;

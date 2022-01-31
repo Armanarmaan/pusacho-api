@@ -746,7 +746,11 @@ const moveImage = (files, name, id) => {
  * {POST}/manajemen/product
  */
 exports.editProduct = async (req, res) => {
-  const { id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = JSON.parse(req.body.data);
+  const { 
+    auth,
+    id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins,
+    orig_name, orig_price, orig_stock, orig_suppliers, orig_modal, orig_modal_nett_per, orig_modal_nett, orig_logistic, orig_margin
+  } = JSON.parse(req.body.data);
   try {
     const sql = `
    UPDATE variants 
@@ -757,6 +761,7 @@ exports.editProduct = async (req, res) => {
     const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
     if (updateProduct.affectedRows > 0) {
 
+      // Handle Image
       if (req.files.image.length > 0) {
         const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
         const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
@@ -766,12 +771,29 @@ exports.editProduct = async (req, res) => {
             message: "Ok"
           })
         }
-      } else {
-        res.status(200).json({
-          code: 200,
-          message: "Ok"
-        })
+      } 
+
+      // Handle Update to Activity Log
+      const changedData = [];
+      if (orig_name != name) changedData.push([3, id, orig_name, name, auth, "NOW()"]);
+      if (orig_price != price) changedData.push([4, id, orig_price, price, auth, "NOW()"]);
+      if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth, "NOW()"]) : changedData.push([1, id, orig_stock, stock, auth, "NOW()"]);
+      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth, "NOW()"]);
+      if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth, "NOW()"]);
+      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, supplimodal_nett_perers, auth, "NOW()"]);
+      if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth, "NOW()"]);
+      if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth, "NOW()"]);
+      if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth, "NOW()"]);
+
+      if (changedData.length > 0) {
+        const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id, created_at) VALUES ?"
+        const insertActivity = await execute(pusacho, activitySql, [changedData]);
       }
+
+      res.status(200).json({
+        code: 200,
+        message: "Ok"
+      })
     } else {
       res.status(400).json({
         code: 400,
@@ -819,6 +841,42 @@ exports.editProduct = async (req, res) => {
 
   } catch(error) {
     console.log("[Update Product Amount] Error :", error.toString());
+    res.status(500).json({
+      code: 200,
+      message: "Internal Server Error"
+    });
+  };
+};
+
+
+/**
+ * Delete Product
+ * {DELETE}/manajemen/product
+ */
+ exports.deleteProduct = async (req, res) => {
+  const { listOfIds } = req.body;
+
+  try {
+    const sql = `
+      DELETE FROM variants
+      WHERE id = ?
+    `;
+
+    const deleteProduct = await execute(pusacho, sql, [listOfIds]);
+    if (deleteProduct.affectedRows > 0) {
+      res.status(200).json({
+        code: 200,
+        message: "Ok"
+      })
+    } else {
+      res.status(400).json({
+        code: 400,
+        message: "Failed to delete"
+      })
+    }
+
+  } catch(error) {
+    console.log("[Delete Product] Error :", error.toString());
     res.status(500).json({
       code: 200,
       message: "Internal Server Error"
