@@ -81,3 +81,34 @@ exports.verifyUser = async (req, res) => {
     data: 'token valid'
   })
 }
+
+exports.changePassword = async (req, res) => {
+  const { id, password } = req.body;
+  // Hash Passwords
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // Query insert user a new user
+  const queryInsert = 'UPDATE users SET password = ? WHERE id = ?';
+
+  try{
+    const updatePasswordUser = await execute(pusacho, queryInsert, [hashedPassword, id]);
+    if (updatePasswordUser.affectedRows > 0) {
+      res.json({
+        status: 200,
+        data: "Success"
+      });
+    }
+    else{
+      res.json({
+        status: 500,
+        message: err
+      });
+    }
+  } catch(err){
+    res.json({
+      status: 500,
+      message: err
+    });
+  }
+}

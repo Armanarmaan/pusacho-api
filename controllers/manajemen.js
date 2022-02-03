@@ -265,6 +265,162 @@ exports.getStatistics = async (req, res) => {
   }
 }
 
+exports.getUsers = async (req, res) => {
+
+  const { keyword, roles, offset, limit } = req.query;
+  // Define Conditions, Sort, Filter & Search Variables
+  const offsetInt = _.isUndefined(offset) ? 0 : parseInt(offset);
+  const limitInt = _.isUndefined(limit) ? 10 : parseInt(limit);
+  const limitoffset = `LIMIT ${offsetInt}, ${limitInt}`;
+  try{
+    let wheres = [];
+    if(keyword !== 'null' && keyword !== ''){
+      const whereKeyword = `u.username LIKE '%${keyword}%'`;
+      wheres.push(whereKeyword);
+    }
+    
+    if(roles !== 'null' && roles !== ''){
+      const whereRole = `u.role IN (${roles})`;
+      wheres.push(whereRole);
+    }
+
+    const allWheres = wheres.length > 0 ? wheres.join(' AND ') : "";
+    
+    const queryGetData =  
+      `SELECT u.id, u.name, u.username, u.role, r.description AS user_role
+      FROM users u
+      INNER JOIN user_role r ON u.role = r.id
+      ${wheres.length > 0 ? `WHERE ${allWheres}` : ""}
+      ${limitoffset}`;
+
+    const queryGetTotal =  
+      `SELECT COUNT(u.username) as total
+      FROM users u
+      INNER JOIN user_role r ON u.role = r.id
+      ${wheres.length > 0 ? `WHERE ${allWheres}` : ""}
+      ${limitoffset}`;
+
+    const data = await execute(pusacho, queryGetData);
+    const [dataTotal] = await execute(pusacho, queryGetTotal);
+
+    if(data.length > 0){
+      res.json({
+        status: 200,
+        data: data,
+        meta: {
+          total: dataTotal.total
+        }
+      });
+    }
+    else{
+      res.json({
+        status: 200,
+        data: [],
+        meta: {
+          total: 0
+        }
+      });
+    }
+    
+    
+  } catch(err){
+    console.log(err);
+    res.json({
+      status: 500,
+      message: err
+    });
+  }
+}
+
+/**
+ * Delete User
+ * {DELETE}/manajemen/user
+ */
+ exports.deleteUser = async (req, res) => {
+  const { id, role } = req.query;
+  try {
+    //Check if manajemen still exist if deleted
+    if(role === '0'){
+      const sqlCheck = `SELECT username FROM users WHERE role = 0`;
+      const check = await execute(pusacho, sqlCheck);
+      if(check.length < 2){
+        res.status(400).json({
+          code: 401,
+          message: "Failed to delete"
+        })
+      }
+      else{
+        const sql = `DELETE FROM users WHERE id = ?`;
+        const deleteUser = await execute(pusacho, sql, [id]);
+        if (deleteUser.affectedRows > 0) {
+          res.status(200).json({
+            code: 200,
+            message: "Ok"
+          })
+        } else {
+          res.status(400).json({
+            code: 400,
+            message: "Failed to delete"
+          })
+        }
+      }
+    }
+    else{
+      const sql = `DELETE FROM users WHERE id = ?`;
+      const deleteUser = await execute(pusacho, sql, [id]);
+      if (deleteUser.affectedRows > 0) {
+        res.status(200).json({
+          code: 200,
+          message: "Ok"
+        })
+      } else {
+        res.status(400).json({
+          code: 400,
+          message: "Failed to delete"
+        })
+      }
+    }
+  } catch(error) {
+    console.log("[Delete User] Error :", error.toString());
+    res.status(500).json({
+      code: 500,
+      message: "Internal Server Error"
+    });
+  };
+};
+
+/**
+ * Edit User
+ * {POST}/manajemen/user
+ */
+ exports.editUser = async (req, res) => {
+  const { id, username, password, name, role } = req.body;
+  try {
+    const sql = `
+    UPDATE users 
+    SET name = ?, role = ?, username = ?
+    WHERE id = ?`;
+    const editUser = await execute(pusacho, sql, [name, role, username, id]);
+    if (editUser.affectedRows > 0) {
+      res.status(200).json({
+        code: 200,
+        message: "Ok"
+      })
+    } else {
+      res.status(400).json({
+        code: 400,
+        message: "Failed to edit"
+      })
+    }
+  } catch(error) {
+    console.log("[Update User] Error :", error.toString());
+    res.status(500).json({
+      code: 500,
+      message: "Internal Server Error"
+    });
+  };
+};
+
 const getHighestVal = (arr) => {
   return Math.max(...arr);
 }

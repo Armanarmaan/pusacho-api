@@ -24,6 +24,11 @@ router.get("/dashboard/activity", verifyToken, manajemen.getActivities);
 router.get("/dashboard/download/report/log", verifyToken, manajemen.getLogsAsXslx);
 router.get("/dashboard/download/report/activity", verifyToken, manajemen.getActivitiesAsXslx);
 
+// Pengaturan
+router.get("/pengaturan/user", verifyToken, manajemen.getUsers);
+router.delete("/pengaturan/user", verifyToken, manajemen.deleteUser);
+router.post("/pengaturan/user/edit", verifyToken, manajemen.editUser);
+
 // Produk Manajemen
 router.get("/categories", manajemen.getAllCategories);
 
