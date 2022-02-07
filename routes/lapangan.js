@@ -5,9 +5,9 @@ const lapangan = require("../controllers/lapangan");
 
 router.get("/", (req, res) => res.json("Lapangan"));
 
-router.post("/get", lapangan.getSomething);
-router.get("/produk", lapangan.getProdukbyID);
-router.get("/aktivitas", lapangan.getAktivitas);
-router.post("/pengurangan", lapangan.postPengurangan);
+router.post("/get", verifyToken, lapangan.getSomething);
+router.get("/produk", verifyToken, lapangan.getProdukbyID);
+router.get("/aktivitas", verifyToken, lapangan.getAktivitas);
+router.post("/pengurangan", verifyToken, lapangan.postPengurangan);
 
 module.exports = router;
