@@ -30,17 +30,17 @@ router.delete("/pengaturan/user", verifyToken, manajemen.deleteUser);
 router.post("/pengaturan/user/edit", verifyToken, manajemen.editUser);
 
 // Produk Manajemen
-router.get("/categories", manajemen.getAllCategories);
+router.get("/categories", verifyToken, manajemen.getAllCategories);
 
-router.post("/categories/add", manajemen.addNewCategory);
+router.post("/categories/add", verifyToken, manajemen.addNewCategory);
 
-router.get("/products", manajemen.getAllProducts);
-router.get("/products/:id", manajemen.getSingleProduct);
+router.get("/products", verifyToken, manajemen.getAllProducts);
+router.get("/products/:id", verifyToken, manajemen.getSingleProduct);
 
-router.post("/product", [upload.fields([{ name: "image", maxCount: 1 }])], manajemen.addProduct);
-router.post("/product/update", [upload.fields([{ name: "image", maxCount: 1 }])], manajemen.editProduct);
-router.post("/products/update/amount", manajemen.updateProductAmount);
+router.post("/product", [upload.fields([{ name: "image", maxCount: 1 }])], verifyToken, manajemen.addProduct);
+router.post("/product/update", [upload.fields([{ name: "image", maxCount: 1 }])], verifyToken, manajemen.editProduct);
+router.post("/products/update/amount", verifyToken, manajemen.updateProductAmount);
 
-router.delete("/product", manajemen.deleteProduct);
+router.delete("/product", verifyToken, manajemen.deleteProduct);
 
 module.exports = router;
