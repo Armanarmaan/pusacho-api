@@ -909,16 +909,16 @@ exports.editProduct = async (req, res) => {
   } = JSON.parse(req.body.data);
   try {
     const sql = `
-   UPDATE variants 
-   SET category_id = ?, name = ?, size = ?, price = ?, stock = ?, suppliers = ?, modals = ?, modal_nett_per = ?, modal_nett = ?, logistic_costs = ?, margins = ?
-   WHERE id = ?
+    UPDATE variants 
+    SET category_id = ?, name = ?, size = ?, price = ?, stock = ?, suppliers = ?, modals = ?, modal_nett_per = ?, modal_nett = ?, logistic_costs = ?, margins = ?
+    WHERE id = ?
    `
 
     const updateProduct = await execute(pusacho, sql, [category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins, id]);
     if (updateProduct.affectedRows > 0) {
 
       // Handle Image
-      if (req.files.image.length > 0) {
+      if (!_.isEmpty(req.files)) {
         const [categoryName] = await execute(pusacho, "SELECT name FROM category WHERE id = ?", category);
         const mvImg = await moveImage(req.files.image[0], `${categoryName.name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
         if (mvImg.affectedRows == 1) {
@@ -936,7 +936,7 @@ exports.editProduct = async (req, res) => {
       if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth, "NOW()"]) : changedData.push([1, id, orig_stock, stock, auth, "NOW()"]);
       if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth, "NOW()"]);
       if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth, "NOW()"]);
-      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, supplimodal_nett_perers, auth, "NOW()"]);
+      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, modal_nett_per, auth, "NOW()"]);
       if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth, "NOW()"]);
       if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth, "NOW()"]);
       if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth, "NOW()"]);
@@ -955,6 +955,49 @@ exports.editProduct = async (req, res) => {
         code: 400,
         message: "Failed to update"
       })
+    }
+
+  } catch (error) {
+    console.log("[Update Product] Error :", error.toString());
+    res.status(500).json({
+      code: 200,
+      message: "Internal Server Error"
+    });
+  };
+};
+
+/**
+ * Add Both Product & Category
+ * {POST}/manajemen/product
+ */
+exports.addBoth = async (req, res) => {
+  const { id, category_name, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins } = JSON.parse(req.body.data);
+  try {
+    const addCategorySql = `INSERT INTO category (name) VALUES (?)`;
+    const addCategory = await execute(pusacho, addCategorySql, category_name);
+
+    if (addCategory.affectedRows > 0) {
+      const sql = `
+      INSERT INTO variants (id, category_id, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  
+      const updateProduct = await execute(pusacho, sql, [id, addCategory.insertId, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins]);
+      if (updateProduct.affectedRows > 0) {
+  
+        const mvImg = await moveImage(req.files.image[0], `${category_name.toLowerCase()}/${id}.${req.files.image[0].mimetype.split("/")[1]}`, id);
+        if (mvImg.affectedRows == 1) {
+          res.status(200).json({
+            code: 200,
+            message: "Ok"
+          })
+        }
+  
+      } else {
+        res.status(400).json({
+          code: 400,
+          message: "Failed to update"
+        })
+      }
     }
 
   } catch (error) {
@@ -1013,10 +1056,7 @@ exports.editProduct = async (req, res) => {
   const { listOfIds } = req.body;
 
   try {
-    const sql = `
-      DELETE FROM variants
-      WHERE id = ?
-    `;
+    const sql = "DELETE FROM variants WHERE id IN (?)";
 
     const deleteProduct = await execute(pusacho, sql, [listOfIds]);
     if (deleteProduct.affectedRows > 0) {
