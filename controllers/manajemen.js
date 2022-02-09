@@ -452,20 +452,23 @@ const getHighestVal = (arr) => {
         item.activity = JSON.parse(item.activity);
         let itemAcObjs = [];
         let totalTambah = 0, totalKurang = 0;
-        item.activity.forEach(itemA => {
-          let asObj = JSON.parse(itemA);
-          if(item.id === asObj.product_id){
-            if(asObj.activity_id === 1){
-              let total = asObj.final_value - asObj.initial_value;
-              totalTambah += total;
+        if(item.activity !== null){
+          item.activity.forEach(itemA => {
+            let asObj = JSON.parse(itemA);
+            if(item.id === asObj.product_id){
+              if(asObj.activity_id === 1){
+                let total = asObj.final_value - asObj.initial_value;
+                totalTambah += total;
+              }
+              else if (asObj.activity_id === 2){
+                let total = asObj.initial_value - asObj.final_value;
+                totalKurang += total;
+              }
+              itemAcObjs.push(asObj);
             }
-            else if (asObj.activity_id === 2){
-              let total = asObj.initial_value - asObj.final_value;
-              totalKurang += total;
-            }
-            itemAcObjs.push(asObj);
-          }
-        });
+          });
+        }
+        
         item.activity = itemAcObjs;
         item.QtyMasuk = totalTambah;
         item.QtyKeluar = totalKurang;
@@ -554,40 +557,44 @@ const getHighestVal = (arr) => {
       sqlData.forEach(item => {
         item.activity = JSON.parse(item.activity);
         let itemAcObjs = [];
-        item.activity.forEach(itemA => {
-          let asObj = JSON.parse(itemA);
-          itemAcObjs.push(asObj);
-        })
+        if(item.activity !== null){
+          item.activity.forEach(itemA => {
+            let asObj = JSON.parse(itemA);
+            itemAcObjs.push(asObj);
+          })
+        }
         item.activity = itemAcObjs;
         let cleanDatum = {
           "Kode Barang": item.id,
           "Nama": item.name,
           "Kategori": item.category,
           "Ukuran": item.size,
-          "Jenis Aktivitas": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].description : "",
-          "Awal": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].initial_value : "",
-          "Hasil": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].final_value : "",
-          "Aktor": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].actor : "",
-          "Tanggal": item.activity[0].product_id === item.id && item.activity.length > 0 ? moment(item.activity[0].created_at).format("DD/MM/YYYY HH:mm:ss") : "",
+          "Jenis Aktivitas": item.activity.length > 0 ? item.activity[0].product_id === item.id ? item.activity[0].description : "" : "",
+          "Awal": item.activity.length > 0 ? item.activity[0].product_id === item.id ? item.activity[0].initial_value : "" : "",
+          "Hasil": item.activity.length > 0 ? item.activity[0].product_id === item.id ? item.activity[0].final_value : "" : "",
+          "Aktor": item.activity.length > 0 ? item.activity[0].product_id === item.id ? item.activity[0].actor : "" : "",
+          "Tanggal": item.activity.length > 0 ? item.activity[0].product_id === item.id ? moment(item.activity[0].created_at).format("DD/MM/YYYY HH:mm:ss") : "" : "",
         };
         cleanData.push(cleanDatum);
-        if(item.activity[0].product_id === item.id && item.activity.length > 0 ){
-          item.activity.forEach((itemA, index) => {
-            if(index !== 0){
-              let activDatum = {
-                "Kode Barang": "",
-                "Nama": "",
-                "Kategori": "",
-                "Ukuran": "",
-                "Jenis Aktivitas": itemA.description,
-                "Awal": itemA.initial_value,
-                "Hasil": itemA.final_value,
-                "Aktor": itemA.actor,
-                "Tanggal": moment(itemA.created_at).format("DD/MM/YYYY HH:mm:ss")
-              };
-              cleanData.push(activDatum);
-            }
-          });
+        if(item.activity.length > 0 ){
+          if(item.activity[0].product_id === item.id){
+            item.activity.forEach((itemA, index) => {
+              if(index !== 0){
+                let activDatum = {
+                  "Kode Barang": "",
+                  "Nama": "",
+                  "Kategori": "",
+                  "Ukuran": "",
+                  "Jenis Aktivitas": itemA.description,
+                  "Awal": itemA.initial_value,
+                  "Hasil": itemA.final_value,
+                  "Aktor": itemA.actor,
+                  "Tanggal": moment(itemA.created_at).format("DD/MM/YYYY HH:mm:ss")
+                };
+                cleanData.push(activDatum);
+              }
+            });
+          }
         }
       });
     } else {
