@@ -933,18 +933,18 @@ exports.editProduct = async (req, res) => {
 
       // Handle Update to Activity Log
       const changedData = [];
-      if (orig_name != name) changedData.push([3, id, orig_name, name, auth, "NOW()"]);
-      if (orig_price != price) changedData.push([4, id, orig_price, price, auth, "NOW()"]);
-      if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth, "NOW()"]) : changedData.push([1, id, orig_stock, stock, auth, "NOW()"]);
-      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth, "NOW()"]);
-      if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth, "NOW()"]);
-      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, modal_nett_per, auth, "NOW()"]);
-      if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth, "NOW()"]);
-      if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth, "NOW()"]);
-      if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth, "NOW()"]);
+      if (orig_name != name) changedData.push([3, id, orig_name, name, auth]);
+      if (orig_price != price) changedData.push([4, id, orig_price, price, auth]);
+      if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth]) : changedData.push([1, id, orig_stock, stock, auth]);
+      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth]);
+      if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth]);
+      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, modal_nett_per, auth]);
+      if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth]);
+      if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth]);
+      if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth]);
 
       if (changedData.length > 0) {
-        const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id, created_at) VALUES ?"
+        const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id) VALUES ?"
         const insertActivity = await execute(pusacho, activitySql, [changedData]);
       }
 
