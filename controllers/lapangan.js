@@ -31,11 +31,7 @@ exports.getProdukbyID = async (req, res) => {
 
   try {
 
-    const queryGetProduk = `SELECT l.actor_id, v.*, u.id AS actorID
-                             FROM activity_log l 
-                             INNER JOIN variants v ON l.product_id = v.id
-                             INNER JOIN users u ON l.actor_id = u.id
-                             WHERE u.id = ?`;
+    const queryGetProduk = 'SELECT * from variants WHERE id = ?';
     const produk = await execute(pusacho, queryGetProduk, id);
     // console.log(produk);
 

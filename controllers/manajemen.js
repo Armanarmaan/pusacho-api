@@ -436,7 +436,7 @@ const getHighestVal = (arr) => {
   try {
     const getSql = `
     SELECT v.*, c.name AS category,
-      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", a.activity_id, "created_at", a.created_at))
+      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "product_id", a.product_id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", a.activity_id, "created_at", a.created_at))
       FROM activity_log a
       WHERE a.product_id = v.id AND a.activity_id IN(1,2) AND a.created_at BETWEEN ? AND ?
       ORDER BY a.created_at ASC) AS activity
@@ -454,16 +454,18 @@ const getHighestVal = (arr) => {
         let totalTambah = 0, totalKurang = 0;
         item.activity.forEach(itemA => {
           let asObj = JSON.parse(itemA);
-          if(asObj.activity_id === 1){
-            let total = asObj.final_value - asObj.initial_value;
-            totalTambah += total;
+          if(item.id === asObj.product_id){
+            if(asObj.activity_id === 1){
+              let total = asObj.final_value - asObj.initial_value;
+              totalTambah += total;
+            }
+            else if (asObj.activity_id === 2){
+              let total = asObj.initial_value - asObj.final_value;
+              totalKurang += total;
+            }
+            itemAcObjs.push(asObj);
           }
-          else if (asObj.activity_id === 2){
-            let total = asObj.initial_value - asObj.final_value;
-            totalKurang += total;
-          }
-          itemAcObjs.push(asObj);
-        })
+        });
         item.activity = itemAcObjs;
         item.QtyMasuk = totalTambah;
         item.QtyKeluar = totalKurang;
@@ -534,7 +536,7 @@ const getHighestVal = (arr) => {
   try {
     const getSql = `
     SELECT v.id AS id, v.name, v.size, c.name AS category,
-      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", 
+      (SELECT JSON_ARRAYAGG(JSON_OBJECT("id", a.id, "product_id", a.product_id, "initial_value", a.initial_value, "final_value", a.final_value, "activity_id", 
         a.activity_id, "description", t.description, "actor", u.name, "created_at", a.created_at))
       FROM activity_log a
       INNER JOIN activities t ON a.activity_id = t.id
@@ -562,14 +564,14 @@ const getHighestVal = (arr) => {
           "Nama": item.name,
           "Kategori": item.category,
           "Ukuran": item.size,
-          "Jenis Aktivitas": item.activity.length > 0 ? item.activity[0].description : "",
-          "Awal": item.activity.length > 0 ? item.activity[0].initial_value : "",
-          "Hasil": item.activity.length > 0 ? item.activity[0].final_value : "",
-          "Aktor": item.activity.length > 0 ? item.activity[0].actor : "",
-          "Tanggal": item.activity.length > 0 ? moment(item.activity[0].created_at).format("DD/MM/YYYY HH:mm:ss") : "",
+          "Jenis Aktivitas": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].description : "",
+          "Awal": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].initial_value : "",
+          "Hasil": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].final_value : "",
+          "Aktor": item.activity[0].product_id === item.id && item.activity.length > 0 ? item.activity[0].actor : "",
+          "Tanggal": item.activity[0].product_id === item.id && item.activity.length > 0 ? moment(item.activity[0].created_at).format("DD/MM/YYYY HH:mm:ss") : "",
         };
         cleanData.push(cleanDatum);
-        if(item.activity.length > 0 ){
+        if(item.activity[0].product_id === item.id && item.activity.length > 0 ){
           item.activity.forEach((itemA, index) => {
             if(index !== 0){
               let activDatum = {
@@ -931,18 +933,18 @@ exports.editProduct = async (req, res) => {
 
       // Handle Update to Activity Log
       const changedData = [];
-      if (orig_name != name) changedData.push([3, id, orig_name, name, auth, "NOW()"]);
-      if (orig_price != price) changedData.push([4, id, orig_price, price, auth, "NOW()"]);
-      if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth, "NOW()"]) : changedData.push([1, id, orig_stock, stock, auth, "NOW()"]);
-      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth, "NOW()"]);
-      if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth, "NOW()"]);
-      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, modal_nett_per, auth, "NOW()"]);
-      if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth, "NOW()"]);
-      if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth, "NOW()"]);
-      if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth, "NOW()"]);
+      if (orig_name != name) changedData.push([3, id, orig_name, name, auth]);
+      if (orig_price != price) changedData.push([4, id, orig_price, price, auth]);
+      if (orig_stock != stock) orig_stock > stock ? changedData.push([2, id, orig_stock, stock, auth]) : changedData.push([1, id, orig_stock, stock, auth]);
+      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers, suppliers, auth]);
+      if (orig_modal != modals) changedData.push([5, id, orig_modal, modals, auth]);
+      if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per, modal_nett_per, auth]);
+      if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett, modal_nett, auth]);
+      if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic, logistic_costs, auth]);
+      if (orig_margin != margins) changedData.push([7, id, orig_margin, margins, auth]);
 
       if (changedData.length > 0) {
-        const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id, created_at) VALUES ?"
+        const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id) VALUES ?"
         const insertActivity = await execute(pusacho, activitySql, [changedData]);
       }
 
