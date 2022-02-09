@@ -3,8 +3,8 @@ const mysql = require("mysql");
 exports.pusacho = mysql.createPool({
   connectionLimit: 100,
   host: "localhost",
-  user: "lakasdp",
-  password: "Lakasdp39",
+  user: "username",
+  password: "password",
   database: "pusacho"
 });
 /**
