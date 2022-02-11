@@ -158,7 +158,6 @@ exports.getActivities = async (req, res) => {
               }
             }
           })
-          itemzzz.reverse();
         });
   
         dataProcessed = {
