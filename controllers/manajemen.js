@@ -940,9 +940,9 @@ exports.editProduct = async (req, res) => {
 
       // Handle Update to Activity Log
       const changedData = [];
-      if (orig_name != name) changedData.push([3, id, orig_name.join(","), name, auth]);
+      if (orig_name != name) changedData.push([3, id, orig_name, name, auth]);
       if (orig_price != price) changedData.push([4, id, orig_price, price, auth]);
-      if (orig_stock != stock) orig_stock != stock ? changedData.push([2, id, orig_stock.join(","), stock, auth]) : changedData.push([1, id, orig_stock.join(","), stock, auth]);
+      if (orig_stock != stock) stock > orig_stock ? changedData.push([1, id, orig_stock.join(","), stock, auth]) : changedData.push([2, id, orig_stock.join(","), stock, auth]);
       if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers.join(","), suppliers, auth]);
       if (orig_modal != modals) changedData.push([5, id, orig_modal.join(","), modals, auth]);
       if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per.join(","), modal_nett_per, auth]);
@@ -1039,8 +1039,9 @@ exports.addBoth = async (req, res) => {
     if (updateProduct.affectedRows > 0) {
 
       if (amount != originalAmount) {
+        const addOrDec = amount > originalAmount ? 1 : 2;
         const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id) VALUES (?, ?, ?, ?, ?)"
-        const insertActivity = await execute(pusacho, activitySql, [2, id, originalAmount, amount, auth]);
+        const insertActivity = await execute(pusacho, activitySql, [addOrDec, id, originalAmount, amount, auth]);
       }
 
       res.status(200).json({
