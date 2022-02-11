@@ -914,9 +914,13 @@ exports.editProduct = async (req, res) => {
   const { 
     auth,
     id, category, name, size, price, stock, suppliers, modals, modal_nett_per, modal_nett, logistic_costs, margins,
-    orig_name, orig_price, orig_stock, orig_suppliers, orig_modal, orig_modal_nett_per, orig_modal_nett, orig_logistic, orig_margin
+    orig_name, orig_price, orig_stock, orig_modal, orig_modal_nett_per, orig_modal_nett, orig_logistic, orig_margin
   } = JSON.parse(req.body.data);
+
   try {
+    const orig_suppliers_sql = `SELECT suppliers FROM variants WHERE id = ?`;
+    const [orig_suppliers] = await execute(pusacho, orig_suppliers_sql, [id]);
+
     const sql = `
     UPDATE variants 
     SET category_id = ?, name = ?, size = ?, price = ?, stock = ?, suppliers = ?, modals = ?, modal_nett_per = ?, modal_nett = ?, logistic_costs = ?, margins = ?
@@ -942,15 +946,13 @@ exports.editProduct = async (req, res) => {
       const changedData = [];
       if (orig_name != name) changedData.push([3, id, orig_name, name, auth]);
       if (orig_price != price) changedData.push([4, id, orig_price, price, auth]);
-      if (orig_stock != stock) stock > orig_stock ? changedData.push([1, id, orig_stock.join(","), stock, auth]) : changedData.push([2, id, orig_stock.join(","), stock, auth]);
-      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers.join(","), suppliers, auth]);
+      if (orig_stock != stock) stock > orig_stock ? changedData.push([1, id, orig_stock, stock, auth]) : changedData.push([2, id, orig_stock.join(","), stock, auth]);
+      if (orig_suppliers != suppliers) changedData.push([8, id, orig_suppliers.suppliers, suppliers, auth]);
       if (orig_modal != modals) changedData.push([5, id, orig_modal.join(","), modals, auth]);
       if (orig_modal_nett_per != modal_nett_per) changedData.push([10, id, orig_modal_nett_per.join(","), modal_nett_per, auth]);
       if (orig_modal_nett != modal_nett) changedData.push([6, id, orig_modal_nett.join(","), modal_nett, auth]);
       if (orig_logistic != logistic_costs) changedData.push([9, id, orig_logistic.join(","), logistic_costs, auth]);
       if (orig_margin != margins) changedData.push([7, id, orig_margin.join(","), margins, auth]);
-
-      console.log(changedData);
 
       if (changedData.length > 0) {
         const activitySql = "INSERT INTO activity_log (activity_id, product_id, initial_value, final_value, actor_id) VALUES ?"
