@@ -135,6 +135,10 @@ exports.getActivities = async (req, res) => {
               item.initial_value = item.initial_value.split("|").length > 1 ? item.initial_value.split("|").join(" dan ") : item.initial_value.split("|")[0];
               item.final_value = item.final_value.split("|").length > 1 ? item.final_value.split("|").join(" dan ") : item.final_value.split("|")[0];
             }
+            else if( item.activity_id === 10){
+              item.initial_value = item.initial_value.split("|").length > 1 ? item.initial_value.split("|").join(" dan ") : item.initial_value.split("|")[0];
+              item.final_value = item.final_value.split("|").length > 1 ? item.final_value.split("|").join(" dan ") : item.final_value.split("|")[0];
+            }
             else{
               let splitted = item.initial_value.split('|');
               let splitted2 = item.final_value.split('|');
