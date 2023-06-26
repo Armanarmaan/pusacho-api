@@ -304,9 +304,8 @@ exports.getUsers = async (req, res) => {
       `SELECT COUNT(u.username) as total
       FROM users u
       INNER JOIN user_role r ON u.role = r.id
-      ${wheres.length > 0 ? `WHERE ${allWheres}` : ""}
-      ${limitoffset}`;
-
+      ${wheres.length > 0 ? `WHERE ${allWheres}` : ""};`;
+    
     const data = await execute(pusacho, queryGetData);
     const [dataTotal] = await execute(pusacho, queryGetTotal);
 

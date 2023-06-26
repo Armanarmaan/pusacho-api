@@ -2,7 +2,7 @@ const mysql = require("mysql");
 
 exports.pusacho = mysql.createPool({
   connectionLimit: 100,
-  host: "192.168.64.3",
+  host: "localhost",
   user: "username",
   password: "password",
   database: "pusacho"

@@ -31,8 +31,8 @@ exports.getProdukbyID = async (req, res) => {
 
   try {
 
-    const queryGetProduk = 'SELECT * from variants WHERE id = ?';
-    const produk = await execute(pusacho, queryGetProduk, id);
+    const queryGetProduk = 'SELECT * from variants WHERE id = ? OR name LIKE ?';
+    const produk = await execute(pusacho, queryGetProduk, [id, id]);
     // console.log(produk);
 
     res.status(200).json({
@@ -51,6 +51,7 @@ exports.getProdukbyID = async (req, res) => {
 
 exports.getAktivitas = async (req, res) => {
   const { id } = req.query;
+  
   try {
     const queryGetData =
       `SELECT l.id, l.product_id, v.name, v.size, v.images, u.id, u.name AS actor_name, a.wording, l.activity_id, 
@@ -59,7 +60,7 @@ exports.getAktivitas = async (req, res) => {
           INNER JOIN activities a ON l.activity_id = a.id 
           INNER JOIN variants v ON l.product_id = v.id
           INNER JOIN users u ON l.actor_id = u.id
-          WHERE u.id = ? AND l.activity_id = 1 OR l.activity_id = 2
+          WHERE l.actor_id = ? AND (l.activity_id = 1 OR l.activity_id = 2)
           ORDER BY l.created_at DESC;`;
 
     const data = await execute(pusacho, queryGetData, id);
