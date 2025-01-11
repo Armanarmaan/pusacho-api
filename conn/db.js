@@ -2,10 +2,10 @@ const mysql = require("mysql");
 
 exports.pusacho = mysql.createPool({
   connectionLimit: 100,
-  host: "192.168.64.3",
-  user: "username",
-  password: "password",
-  database: "pusacho"
+  host: process.env.DB_HOSTNAME,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 /**
  * execute database query with Promise

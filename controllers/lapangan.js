@@ -31,8 +31,8 @@ exports.getProdukbyID = async (req, res) => {
 
   try {
 
-    const queryGetProduk = 'SELECT * from variants WHERE id = ?';
-    const produk = await execute(pusacho, queryGetProduk, id);
+    const queryGetProduk = 'SELECT * from variants WHERE id = ? OR name LIKE ?';
+    const produk = await execute(pusacho, queryGetProduk, [id, id]);
     // console.log(produk);
 
     res.status(200).json({
